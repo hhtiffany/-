@@ -18,7 +18,7 @@ dayevent <- df %>%
 
 
 w <- weather %>% 
-              select(X, EDT, Mean.TemperatureF, PrecipitationIn, CloudCover, Events) %>%
+              select(EDT, contains("Temper"), contains("Wind"), PrecipitationIn, CloudCover, Events) %>%
               mutate(date=EDT) %>%
               separate(EDT, c("year", "month", "day"), sep="-") %>%
               group_by(year, month, day) 
@@ -30,7 +30,7 @@ w$day <- as.numeric(w$day)
 
 dw <- inner_join(dayevent, w, by=c("year"="year", "month"="month", "day"="day")) 
 
-write.csv(dw, 'weather with event')
+write.csv(dw, 'weather with event amounts')
 
 # combine weather data with Andy's combined data
 df <- df %>%
