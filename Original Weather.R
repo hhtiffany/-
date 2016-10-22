@@ -11,7 +11,7 @@ df_e <- df %>%
   summarise(n=length(CAD.Event.Type.Name)) %>%
   arrange(desc(n))
 
-# weather data with only event numbers
+# weather data with only event amounts per day
 dayevent <- df %>% 
               group_by(year, month, day) %>%
               summarise(n= length(Start.Calendar.Date))
