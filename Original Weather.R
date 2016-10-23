@@ -1,53 +1,85 @@
-library(tidyr)
 library(dplyr)
-
-weather <- read.csv("~/Documents/BU/MA 675 STAT PRAC 1/Project COB/original data/weather/Complete Weather Data")
+library(tidyr)
+library(ggplot2)
 
 df <- read.csv("~/Documents/BU/MA 675 STAT PRAC 1/Project COB/original data/andy/combined_for_analysis.csv")
 
-# event count
-df_e <- df %>%
-  group_by(CAD.Event.Type.Name) %>%
-  summarise(n=length(CAD.Event.Type.Name)) %>%
-  arrange(desc(n))
-
-# weather data with only event amounts per day
-dayevent <- df %>% 
+# number of events per month
+month <- df %>% 
+              group_by(year, month, day, CADEventLocationIdentifier) %>%
+              summarise(n= length(Start.Calendar.Date)) %>%
+              mutate(index=1) %>%
               group_by(year, month, day) %>%
-              summarise(n= length(Start.Calendar.Date))
+              summarise(n=sum(index))
+
+month <- month %>% 
+           mutate(y=year, m=month) %>%
+           unite(date, y, m, sep="-")
+
+m <- month
+m$n[m$n<mean(m$n)] <- -10
+mean(month$n) #47
+
+plot(month$date, month$n, col=factor(month$year), xlab="Month", ylab="Number of Events", main="Number of Events per Month")
+lines(month$date, month$n)
+points(m$n, col="red", pch=20, cex=3)
+
+# weather analysis
+dw <-read.csv("~/Documents/BU/MA 675 STAT PRAC 1/Project COB/original data/weather/weather with event amounts.csv")
+
+# huge wind vs less wind 11
+meanwind <- subset(dw, select=c(year, month, Mean.Wind.SpeedMPH, Events, n))
+meanwind <- filter(meanwind, month==12 | month <=5)
+
+list(mean(meanwind$Mean.Wind.SpeedMPH[1:148]), mean(meanwind$Mean.Wind.SpeedMPH[149:294])) # 11.6  11.3
+mean(meanwind$Mean.Wind.SpeedMPH) # 11.5
+
+windday <- meanwind %>%
+           filter(Mean.Wind.SpeedMPH > 11) %>%
+           group_by(year, month) %>%
+           summarise(nwin=mean(n)) %>%
+           mutate(y=year, m=month) %>%
+           unite(date, y, m, sep="-")
+
+lesswindday <- meanwind %>%
+           filter(Mean.Wind.SpeedMPH <= 11) %>%
+           group_by(year, month) %>%
+           summarise(nlesswin=mean(n)) %>%
+           mutate(y=year, m=month) %>%
+           unite(date, y, m, sep="-")
+
+ww <- inner_join(windday, lesswindday, by=c("year"="year", "month"="month", "X"="X", "date"="date")) 
 
 
-w <- weather %>% 
-              select(EDT, contains("Temper"), contains("Wind"), PrecipitationIn, CloudCover, Events) %>%
-              mutate(date=EDT) %>%
-              separate(EDT, c("year", "month", "day"), sep="-") %>%
-              group_by(year, month, day) 
-            
+plot(ww$date, ww$nwin, col=factor(ww$year), 
+     xlab="Month", ylab="Average Events per day", main="Average Events per Windy/Lesswindy day Level=11")
+ points(ww$nwin, pch=20)
+ lines(ww$date, ww$nwin)
+ points(ww$nlesswin, pch=20, col="blue")
+ lines(ww$date, ww$nlesswin, pch=2, col="blue")
 
-w$year <- as.numeric(w$year)
-w$month <- as.numeric(w$month)
-w$day <- as.numeric(w$day)
+# huge wind vs less wind 15
+wind <- meanwind %>%
+          filter(Mean.Wind.SpeedMPH > 15) %>%
+          group_by(year, month) %>%
+          summarise(nwin=mean(n)) %>%
+          mutate(y=year, m=month) %>%
+          unite(date, y, m, sep="-")
 
-dw <- inner_join(dayevent, w, by=c("year"="year", "month"="month", "day"="day")) 
+lesswind <- meanwind %>%
+          filter(Mean.Wind.SpeedMPH <= 15) %>%
+          group_by(year, month) %>%
+          summarise(nlesswin=mean(n)) %>%
+          mutate(y=year, m=month) %>%
+          unite(date, y, m, sep="-")
 
-write.csv(dw, 'weather with event amounts')
 
-# combine weather data with Andy's combined data
-df <- df %>%
-         group_by(year, month, day) %>%
-         arrange(year, month, day)
+ww15 <- inner_join(wind, lesswind, by=c("year"="year", "month"="month", "X"="X", "date"="date")) 
 
-weather.c <- weather %>% 
-        mutate(date=EDT) %>%
-        separate(EDT, c("year", "month", "day"), sep="-") %>%
-        group_by(year, month, day) 
 
-weather.c $year <- as.numeric(weather.c $year)
-weather.c $month <- as.numeric(weather.c $month)
-weather.c $day <- as.numeric(weather.c $day)
-
-com.data.with.wea <- left_join(df, weather.c,
-                               copy=TRUE,
-                               by=c("year"="year", "month"="month", "day"="day")) 
-
-write.csv(com.data.with.wea, 'comdatawithwea')
+plot(ww15$date, ww15$nwin, col=factor(ww15$year), 
+     xlab="Month", ylab="Average Events per day", main="Average Events per Windy/Lesswindy day Level=15")
+ points(ww15$nwin, pch=20)
+ lines(ww15$date, ww15$nwin)
+ points(ww15$nlesswin, pch=20, col="blue")
+ lines(ww15$date, ww15$nlesswin, pch=2, col="blue")
