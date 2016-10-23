@@ -8,9 +8,8 @@ df <- read.csv("~/Documents/BU/MA 675 STAT PRAC 1/Project COB/original data/andy
 month <- df %>% 
               group_by(year, month, day, CADEventLocationIdentifier) %>%
               summarise(n= length(Start.Calendar.Date)) %>%
-              mutate(index=1) %>%
-              group_by(year, month, day) %>%
-              summarise(n=sum(index))
+              group_by(year, month) %>%
+              summarise(n=length(day))
 
 month <- month %>% 
            mutate(y=year, m=month) %>%
